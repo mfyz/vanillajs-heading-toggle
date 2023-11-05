@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8" />
+	<title>Heading wraps</title>
+	<script type="text/javascript">
+	const storageDocId = 'test-doc'
+
+	document.addEventListener('DOMContentLoaded', function() {
+		var wrapper = document.getElementById('wrapper');
+
+		// Wrap any dangling texts to be a dom element
+		Array.prototype.slice.call(wrapper.childNodes).forEach(function(node) {
+			if (node.nodeType === 3 && node.nodeValue.trim() !== '') {
+				var span = document.createElement('span')
+				node.parentNode.insertBefore(span, node)
+				span.appendChild(node)
+			}
+		})
+
+		function isHeading(element) {
+			return /^(H1|H2|H3|H4)$/.test(element.tagName)
+		}
+
+		// Iterate over each heading
+		Array.from(wrapper.children).filter(child => isHeading(child)).forEach(function(heading) {
+			var elementsToWrap = []
+			var nextElement = heading.nextElementSibling
+
+			// Loop through the siblings until the next heading is found
+			while (nextElement && !isHeading(nextElement)) {
+				elementsToWrap.push(nextElement)
+				nextElement = nextElement.nextElementSibling
+			}
+
+			// If there are elements to wrap, wrap them in a div with class 'wrapped'
+			if (elementsToWrap.length > 0) {
+				var wrapperDiv = document.createElement('div')
+				wrapperDiv.className = 'wrapped'
+
+				// Insert the wrapper before the first element in the list
+				elementsToWrap[0].parentNode.insertBefore(wrapperDiv, elementsToWrap[0])
+
+				// Move all elements to wrap inside the wrapper div
+				elementsToWrap.forEach(function(element) {
+					wrapperDiv.appendChild(element)
+				})
+			}
+
+			// Add toggle clasname to the heading element
+			heading.className += 'toggle-heading'
+		})
+
+		const headingCollapseState = {}
+		document.querySelectorAll('.toggle-heading').forEach(function(h){
+			// Create IDs for headings from their content
+			h.id = h.textContent.trim()
+			const headingStateId = h.tagName + '-' + h.id
+
+			// Handle click events to toggle
+			h.addEventListener('click', function(e){
+				let isHeadingCollapsed = h.classList.contains('collapsed')
+				if (isHeadingCollapsed) { h.classList.remove('collapsed') }
+				else { h.classList.add('collapsed') }
+				isHeadingCollapsed = !isHeadingCollapsed
+
+				// Save state
+				headingCollapseState[headingStateId] = isHeadingCollapsed
+				window.localStorage.setItem('heading-collapse-state-' + storageDocId, JSON.stringify(headingCollapseState))
+			})
+
+			// Restore the saved state for this node
+			const savedCollapseState = JSON.parse(window.localStorage.getItem('heading-collapse-state-' + storageDocId))
+			if (
+				savedCollapseState
+				&& typeof savedCollapseState[headingStateId] !== 'undefined'
+				&& savedCollapseState[headingStateId]
+			) {
+				h.classList.add('collapsed')
+				headingCollapseState[headingStateId] = true // restore to current state object
+			}
+		})
+	})
+
+	</script>
+	<style type="text/css">
+	body {
+		padding: 30px;
+	}
+
+	.wrapped {
+		/* padding-top: 10px; */
+	}
+
+	.toggle-heading {
+		position: relative;
+		margin-bottom: 10px;
+	}
+
+	.toggle-heading::before {
+		content: '›';
+		transform: rotate(90deg);
+		position: absolute;
+		left: -15px;
+		margin-top: -1px;
+		width: 15px;
+		opacity: 0.3;
+		text-align: right;
+		font-weight: lighter;
+	}
+
+	.toggle-heading.collapsed::before {
+		left: -20px;
+		margin-top: 0;
+		transform: rotate(0deg);
+	}
+
+	.toggle-heading.collapsed + .wrapped {
+		display: none;
+	}
+
+	/* h2.toggle-heading,
+	h2.toggle-heading + .wrapped {
+		margin-left: 20px;
+	}
+	
+	h3.toggle-heading,
+	h3.toggle-heading + .wrapped {
+		margin-left: 40px;
+	}
+
+	h4.toggle-heading,
+	h4.toggle-heading + .wrapped {
+		margin-left: 60px;
+	} */
+	</style>
+</head>
+<body>
+
+<h1>
+	Title 
+</h1>
+Intro text 
+
+<hr>
+
+<div id="wrapper">
+	<h3>
+		header 4
+	</h3>
+	Yoyoyo Some text 4 
+	<h1>
+		header 1 
+	</h1>
+	Some text 1 
+	<ul>
+		<li>
+			Some text 2 
+		</li>
+	</ul>
+	<p>
+		Some text 3 
+	</p>
+	<h2>
+		header 2 
+	</h2>
+	Some text 2
+	Lorem ipsum dolor, sit amet consectetur adipisicing elit. Voluptatibus consequatur ad ab, aliquid asperiores veniam quos facilis cum harum consequuntur dolorum repellat assumenda vel optio voluptatem, nihil fugiat quidem voluptas!
+	<ul>
+		<li>
+			Some text 2 
+		</li>
+	</ul>
+	<hr>
+	<p>
+		Some text 2.1
+	</p>
+	<h2>
+		header 3
+	</h2>
+	Some text 3
+	<h2>
+		header 3
+	</h2>
+	Some text 3 (intentionally same heading content...)
+	<h3>
+		header 4
+	</h3>
+	Yoyoyo Some text 4 
+</div>
+
+Some other text ourside of wrapper 5 
+
+</body>
+</html>
